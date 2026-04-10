@@ -1,0 +1,12 @@
+[package]
+name = "rust_final"
+version = "0.1.0"
+edition = "2024"
+
+[[test]]
+name = "benchmark"
+path = "benchmarks/benchmark.rs"
+
+[dependencies]
+rayon   = "1"
+sysinfo = "0.30"
