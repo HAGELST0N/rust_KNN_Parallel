@@ -1,14 +1,17 @@
 use crate::bench::{process_memory_kb, Results};
-use crate::mnist::MnistDataset;
+use crate::pre_processing::MnistDataset;
 use std::thread;
 use std::time::Instant;
 
+// Hamming distance is more efficient than euclidean for binary data
+// performs bitwise XOR to find where images are different and counts the differences
 fn hamming_distance(a: &[u8], b: &[u8]) -> u32 {
     a.iter()
         .zip(b.iter())
         .map(|(&x, &y)| (x ^ y).count_ones())
         .sum()
 }
+
 
 fn classify_one(train: &MnistDataset, image: &[u8], k: usize) -> u8 {
     let mut distances: Vec<(u32, u8)> = (0..train.len())
@@ -33,12 +36,7 @@ fn classify_one(train: &MnistDataset, image: &[u8], k: usize) -> u8 {
 /// Spawns scoped threads that borrow `train` and `test` directly — no cloning.
 /// `thread::scope` guarantees all threads finish before the scope exits,
 /// which satisfies the borrow checker without needing `Arc` or `'static`.
-fn run_scoped(
-    train: &MnistDataset,
-    test: &MnistDataset,
-    k: usize,
-    num_threads: usize,
-) -> Vec<u8> {
+fn run_scoped(train: &MnistDataset, test: &MnistDataset, k: usize, num_threads: usize,) -> Vec<u8> {
     let test_len = test.len();
     let chunk_size = test_len.div_ceil(num_threads);
 
@@ -62,7 +60,7 @@ fn run_scoped(
     })
 }
 
-/// Runs the std::thread parallel KNN and returns metrics without printing progress.
+// Runs the std::thread parallel k-nn and returns metrics
 pub fn bench(train: &MnistDataset, test: &MnistDataset, k: usize, num_threads: usize) -> Results {
     let mem_before = process_memory_kb();
     let start = Instant::now();
@@ -86,29 +84,3 @@ pub fn bench(train: &MnistDataset, test: &MnistDataset, k: usize, num_threads: u
     }
 }
 
-pub fn run(train: &MnistDataset, test: &MnistDataset, k: usize, num_threads: usize) {
-    println!(
-        "Running std::thread parallel KNN (k={}, threads={})...",
-        k, num_threads
-    );
-    let start = Instant::now();
-
-    let predictions = run_scoped(train, test, k, num_threads);
-
-    let elapsed = start.elapsed();
-
-    let correct = predictions
-        .iter()
-        .zip(test.labels.iter())
-        .filter(|&(&pred, &truth)| pred == truth)
-        .count();
-
-    println!("\nstd::thread parallel KNN results (k={}):", k);
-    println!("  Threads : {}", num_threads);
-    println!("  Correct : {}/{}", correct, test.len());
-    println!(
-        "  Accuracy: {:.2}%",
-        100.0 * correct as f64 / test.len() as f64
-    );
-    println!("  Time    : {:.2?}", elapsed);
-}

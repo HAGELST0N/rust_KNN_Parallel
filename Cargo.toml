@@ -8,5 +8,5 @@ name = "benchmark"
 path = "benchmarks/benchmark.rs"
 
 [dependencies]
-rayon   = "1"
-sysinfo = "0.30"
+rayon    = "1"
+sysinfo  = "0.30"

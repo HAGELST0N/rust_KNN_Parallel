@@ -1,8 +1,10 @@
 use crate::bench::{process_memory_kb, Results};
-use crate::mnist::MnistDataset;
+use crate::pre_processing::MnistDataset;
 use ::rayon::prelude::*;
 use std::time::Instant;
 
+// Hamming distance is more efficient than euclidean for binary data
+// performs bitwise XOR to find where images are different and counts the differences
 fn hamming_distance(a: &[u8], b: &[u8]) -> u32 {
     a.iter()
         .zip(b.iter())
@@ -10,6 +12,7 @@ fn hamming_distance(a: &[u8], b: &[u8]) -> u32 {
         .sum()
 }
 
+// Difference from sequential classify_one: .into_par_iter() allows parallel iteration
 fn classify_one(train: &MnistDataset, image: &[u8], k: usize) -> u8 {
     // Compute distance from this image to every training sample — parallelised
     let mut distances: Vec<(u32, u8)> = (0..train.len())
@@ -17,7 +20,8 @@ fn classify_one(train: &MnistDataset, image: &[u8], k: usize) -> u8 {
         .map(|i| (hamming_distance(image, train.image(i)), train.labels[i]))
         .collect();
 
-    // Partial sort: bring the k smallest distances to the front
+    // Partial sort brings the k smallest distances to the front O(n) on average
+    // Highly useful for implementations where I only need the lowest few distances
     distances.select_nth_unstable_by_key(k - 1, |&(dist, _)| dist);
 
     // Majority vote over the k nearest neighbours
@@ -34,13 +38,13 @@ fn classify_one(train: &MnistDataset, image: &[u8], k: usize) -> u8 {
         .unwrap()
 }
 
-/// Runs the Rayon parallel KNN and returns metrics without printing progress.
+/// Runs the Rayon parallel k-nn and returns metrics without printing progress.
 /// Uses the default global thread pool.
 pub fn bench(train: &MnistDataset, test: &MnistDataset, k: usize) -> Results {
     bench_with_threads(train, test, k, ::rayon::current_num_threads())
 }
 
-/// Runs the Rayon parallel KNN with a specific thread count.
+/// Runs the Rayon parallel k-nn with a specific thread count.
 /// Builds an isolated thread pool so the global pool is not affected.
 pub fn bench_with_threads(
     train: &MnistDataset,
@@ -80,29 +84,3 @@ pub fn bench_with_threads(
     }
 }
 
-pub fn run(train: &MnistDataset, test: &MnistDataset, k: usize) {
-    println!("Running Rayon parallel KNN (k={})...", k);
-    let start = Instant::now();
-
-    // Parallelise over test samples — each classification is independent
-    let predictions: Vec<u8> = (0..test.len())
-        .into_par_iter()
-        .map(|i| classify_one(train, test.image(i), k))
-        .collect();
-
-    let elapsed = start.elapsed();
-
-    let correct = predictions
-        .iter()
-        .zip(test.labels.iter())
-        .filter(|&(&pred, &truth)| pred == truth)
-        .count();
-
-    println!("\nRayon parallel KNN results (k={}):", k);
-    println!("  Correct : {}/{}", correct, test.len());
-    println!(
-        "  Accuracy: {:.2}%",
-        100.0 * correct as f64 / test.len() as f64
-    );
-    println!("  Time    : {:.2?}", elapsed);
-}
