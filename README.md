@@ -25,8 +25,8 @@ This project tests the efficacy of algorithms that classify images from the MINS
 
 ---REQUIREMENTS---
 x86-64 CPU
-~200 MB RAM
-8 CPU threads
+512 MB of available RAM
+8 available CPU threads
 
 Rust 1.85 or newer
 Cargo (comes with rust)
@@ -38,10 +38,11 @@ Tested on Windows 10 and 11, but should function on MacOS and Linux
 
 2. Place data folder inside the root directory (rust_KNN_parallel)
 
-3. From the root directory run:
+3. From the terminal navigate to the root directory and execute:
+
 cargo run --release
 
-4. Select an option from the menu:
+4. Select your option from the menu:
 
 | Option | Description |
 |---|---|
