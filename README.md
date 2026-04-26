@@ -40,7 +40,7 @@ Tested on Windows 10 and 11, but should function on MacOS and Linux
 
 3. From the terminal navigate to the root directory and execute:
 
-cargo run --release
+    cargo run --release
 
 4. Select your option from the menu:
 
