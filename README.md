@@ -32,8 +32,24 @@ Rust 1.85 or newer
 Cargo (comes with rust)
 
 Tested on Windows 10 and 11, but should function on MacOS and Linux
+
 ---USER GUIDE---
 1. Download data folder at https://drive.google.com/drive/folders/1LrArqP033e3OqMRsjIJzF5wdm9p2UuB6?usp=sharing (must be logged into champlain email to access)
 
-2. Place data folder inside the project folder (rust_final) 
+2. Place data folder inside the root directory (rust_KNN_parallel)
 
+3. From the root directory run:
+cargo run --release
+
+4. Select an option from the menu:
+
+| Option | Description |
+|---|---|
+| `1` Change test size | Set how many test samples to classify (1 – 10,000) |
+| `2` Sequential | Runs KNN on a single thread and displays results |
+| `3` Rayon parallel | Runs KNN using Rayon, automatically using all available threads |
+| `4` std::thread parallel | Runs KNN using std::thread with all available threads |
+| `5` Run all | Runs all three implementations back-to-back, using sequential as the baseline for relative metrics, and saves results to `results/results.csv` |
+| `6` Scalability analysis | Sweeps Rayon and std::thread across 1, 2, 4, and 8 threads and saves results to `results/scalability.csv` |
+| `7` Overhead analysis | Measures raw thread spawn time, Rayon pool initialisation time, and Rayon dispatch time |
+| `q` Quit | Exits the program |
