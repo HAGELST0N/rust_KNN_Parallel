@@ -47,10 +47,11 @@ Tested on Windows 10 and 11, but should function on MacOS and Linux
 | Option | Description |
 |---|---|
 | `1` Change test size | Set how many test samples to classify (1 – 10,000) |
-| `2` Sequential | Runs KNN on a single thread and displays results |
-| `3` Rayon parallel | Runs KNN using Rayon, automatically using all available threads |
-| `4` std::thread parallel | Runs KNN using std::thread with all available threads |
-| `5` Run all | Runs all three implementations back-to-back, using sequential as the baseline for relative metrics, and saves results to `results/results.csv` |
-| `6` Scalability analysis | Sweeps Rayon and std::thread across 1, 2, 4, and 8 threads and saves results to `results/scalability.csv` |
-| `7` Overhead analysis | Measures raw thread spawn time, Rayon pool initialisation time, and Rayon dispatch time |
+| `2` Change distance metric | Toggle the distance function between Hamming and Euclidean |
+| `3` Sequential | Runs KNN on a single thread and displays results |
+| `4` Rayon parallel | Runs KNN using Rayon, automatically using all available threads |
+| `5` std::thread parallel | Runs KNN using std::thread with all available threads |
+| `6` Run all | Runs all three implementations back-to-back, using sequential as the baseline for relative metrics, and saves results to `results/results.csv` |
+| `7` Scalability analysis | Sweeps Rayon and std::thread across 1, 2, 4, and 8 threads and saves results to `results/scalability.csv` |
+| `8` Overhead analysis | Measures raw thread spawn time, Rayon pool initialisation time, and Rayon dispatch time |
 | `q` Quit | Exits the program |
