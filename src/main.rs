@@ -5,7 +5,7 @@ mod sequential;
 mod rayon;
 mod std_thread;
 
-use bench::Results;
+use bench::{Results, DistanceMetric};
 use std::io::{self, Write};
 use std::path::Path;
 use std::thread;
@@ -141,25 +141,26 @@ fn scaling_row(threads: usize, r: &Results, baseline: &Results) {
 fn run_scalability(
     train: &pre_processing::MnistDataset,
     test: &pre_processing::MnistDataset,
+    metric: DistanceMetric,
 ) {
     println!("\nRunning sequential baseline...");
-    let baseline = sequential::bench(train, test, K);
+    let baseline = sequential::bench(train, test, K, metric);
 
     let mut rayon_results: Vec<Results> = Vec::new();
     let mut thread_results: Vec<Results> = Vec::new();
 
-    println!("\n--- Rayon scaling (k={}, train={}, test={}) ---\n", K, train.len(), test.len());
+    println!("\n--- Rayon scaling (k={}, train={}, test={}, metric={}) ---\n", K, train.len(), test.len(), metric);
     scaling_header();
     for &n in THREAD_COUNTS {
-        let r = rayon::bench_with_threads(train, test, K, n);
+        let r = rayon::bench_with_threads(train, test, K, metric, n);
         scaling_row(n, &r, &baseline);
         rayon_results.push(r);
     }
 
-    println!("\n--- std::thread scaling (k={}, train={}, test={}) ---\n", K, train.len(), test.len());
+    println!("\n--- std::thread scaling (k={}, train={}, test={}, metric={}) ---\n", K, train.len(), test.len(), metric);
     scaling_header();
     for &n in THREAD_COUNTS {
-        let r = std_thread::bench(train, test, K, n);
+        let r = std_thread::bench(train, test, K, metric, n);
         scaling_row(n, &r, &baseline);
         thread_results.push(r);
     }
@@ -267,7 +268,7 @@ fn csv_open_append_path(path: &str) -> std::fs::File {
     if !exists {
         writeln!(
             file,
-            "method,k,test_size,threads,time_s,samples_per_s,speedup,efficiency,\
+            "method,k,test_size,threads,distance_metric,time_s,samples_per_s,speedup,efficiency,\
              overhead_ms,isoeff_50,isoeff_75,isoeff_90,mem_delta_kb,accuracy_pct"
         )
         .expect("failed to write CSV header");
@@ -299,8 +300,8 @@ fn csv_write_row(
 
     writeln!(
         file,
-        "{},{},{},{},{:.6},{:.3},{},{},{},{},{},{},{},{:.2}",
-        method, k, test_size, threads,
+        "{},{},{},{},{},{:.6},{:.3},{},{},{},{},{},{},{},{:.2}",
+        method, k, test_size, threads, r.distance_metric,
         r.elapsed.as_secs_f64(),
         r.throughput(),
         speedup .map(|v| format!("{:.6}", v)).unwrap_or_default(),
@@ -330,15 +331,16 @@ fn save_csv(
     println!("\n  Results appended to '{CSV_PATH}'");
 }
 
-fn print_menu(test_size: usize, max: usize) {
+fn print_menu(test_size: usize, max: usize, metric: DistanceMetric) {
     println!("\n=== MNIST k-nn Classifier ===");
-    println!("  1) Change test size  (current: {}/{})", test_size, max);
-    println!("  2) Sequential");
-    println!("  3) Rayon parallel");
-    println!("  4) std::thread parallel");
-    println!("  5) Run all");
-    println!("  6) Scalability analysis");
-    println!("  7) Overhead analysis");
+    println!("  1) Change test size     (current: {}/{})", test_size, max);
+    println!("  2) Change distance metric      (current: {})", metric);
+    println!("  3) Sequential");
+    println!("  4) Rayon parallel");
+    println!("  5) std::thread parallel");
+    println!("  6) Run all");
+    println!("  7) Scalability analysis");
+    println!("  8) Overhead analysis");
     println!("  q) Quit");
 }
 
@@ -370,6 +372,7 @@ fn main() {
     let (train, test_full) = load_or_preprocess();
     let max_test = test_full.len();
     let mut test_size = max_test;
+    let mut metric = DistanceMetric::Hamming;
 
     println!("\nTraining samples : {}", train.len());
     println!("Test samples     : {}", max_test);
@@ -378,40 +381,47 @@ fn main() {
 
     loop {
         let test = test_full.subset(test_size);
-        print_menu(test_size, max_test);
+        print_menu(test_size, max_test, metric);
         match prompt("\nChoice: ").as_str() {
             "1" => test_size = change_test_size(test_size, max_test),
             "2" => {
-                let title = format!("Sequential k-nn  (k={}, test={})", K, test.len());
-                let r = sequential::bench(&train, &test, K);
+                metric = match metric {
+                    DistanceMetric::Hamming   => DistanceMetric::Euclidean,
+                    DistanceMetric::Euclidean => DistanceMetric::Hamming,
+                };
+                println!("  Distance metric set to: {}", metric);
+            }
+            "3" => {
+                let title = format!("Sequential k-nn  (k={}, test={}, metric={})", K, test.len(), metric);
+                let r = sequential::bench(&train, &test, K, metric);
                 result_header(&title);
                 result_row("sequential", 1, &r, None);
             }
-            "3" => {
-                let title = format!("Rayon k-nn  (k={}, test={}, threads={})", K, test.len(), num_threads);
-                let r = rayon::bench(&train, &test, K);
+            "4" => {
+                let title = format!("Rayon k-nn  (k={}, test={}, threads={}, metric={})", K, test.len(), num_threads, metric);
+                let r = rayon::bench(&train, &test, K, metric);
                 result_header(&title);
                 result_row("rayon", num_threads, &r, None);
             }
-            "4" => {
-                let title = format!("std::thread k-nn  (k={}, test={}, threads={})", K, test.len(), num_threads);
-                let r = std_thread::bench(&train, &test, K, num_threads);
+            "5" => {
+                let title = format!("std::thread k-nn  (k={}, test={}, threads={}, metric={})", K, test.len(), num_threads, metric);
+                let r = std_thread::bench(&train, &test, K, metric, num_threads);
                 result_header(&title);
                 result_row("std::thread", num_threads, &r, None);
             }
-            "5" => {
-                let title = format!("All methods  (k={}, test={}, threads={})", K, test.len(), num_threads);
-                let seq = sequential::bench(&train, &test, K);
-                let ray = rayon::bench(&train, &test, K);
-                let thr = std_thread::bench(&train, &test, K, num_threads);
+            "6" => {
+                let title = format!("All methods  (k={}, test={}, threads={}, metric={})", K, test.len(), num_threads, metric);
+                let seq = sequential::bench(&train, &test, K, metric);
+                let ray = rayon::bench(&train, &test, K, metric);
+                let thr = std_thread::bench(&train, &test, K, metric, num_threads);
                 result_header(&title);
                 result_row("sequential",  1,           &seq, None);
                 result_row("rayon",       num_threads, &ray, Some(&seq));
                 result_row("std::thread", num_threads, &thr, Some(&seq));
                 save_csv(K, test.len(), num_threads, &seq, &ray, &thr);
             }
-            "6" => run_scalability(&train, &test),
-            "7" => run_overhead_analysis(&test),
+            "7" => run_scalability(&train, &test, metric),
+            "8" => run_overhead_analysis(&test),
             "q" | "Q" => {
                 println!("Goodbye.");
                 break;

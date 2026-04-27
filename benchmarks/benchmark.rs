@@ -1,6 +1,6 @@
 use rust_final::pre_processing;
 use rust_final::{sequential, rayon, std_thread};
-use rust_final::bench::Results;
+use rust_final::bench::{Results, DistanceMetric};
 use std::path::Path;
 
 // Number of test samples to classify — kept small so the test finishes quickly.
@@ -27,10 +27,10 @@ fn benchmark_knn() {
     let (train, test_full) = load_data();
     let test = test_full.subset(TEST_SAMPLES);
 
-    let seq    = sequential::bench(&train, &test, K);
-    let ray    = rayon::bench(&train, &test, K);
+    let seq    = sequential::bench(&train, &test, K, DistanceMetric::Hamming);
+    let ray    = rayon::bench(&train, &test, K, DistanceMetric::Hamming);
     let n = num_threads();
-    let thread = std_thread::bench(&train, &test, K, n);
+    let thread = std_thread::bench(&train, &test, K, DistanceMetric::Hamming, n);
 
     println!("\n=== K-nn Benchmark (k={}, train={}, test={}) ===\n", K, train.len(), test.len());
     print_benchmark_header();
@@ -130,7 +130,7 @@ fn print_scaling_header() {
 fn scaling_rayon() {
     let (train, test_full) = load_data();
     let test = test_full.subset(TEST_SAMPLES);
-    let baseline = sequential::bench(&train, &test, K);
+    let baseline = sequential::bench(&train, &test, K, DistanceMetric::Hamming);
 
     println!(
         "\n=== Rayon scaling (k={}, train={}, test={}) ===\n",
@@ -139,7 +139,7 @@ fn scaling_rayon() {
     print_scaling_header();
 
     for &n in THREAD_COUNTS {
-        let r = rayon::bench_with_threads(&train, &test, K, n);
+        let r = rayon::bench_with_threads(&train, &test, K, DistanceMetric::Hamming, n);
         print_scaling_row(n, &r, &baseline);
         assert!(
             (r.accuracy() - baseline.accuracy()).abs() < 1.0,
@@ -153,7 +153,7 @@ fn scaling_rayon() {
 fn scaling_std_thread() {
     let (train, test_full) = load_data();
     let test = test_full.subset(TEST_SAMPLES);
-    let baseline = sequential::bench(&train, &test, K);
+    let baseline = sequential::bench(&train, &test, K, DistanceMetric::Hamming);
 
     println!(
         "\n=== std::thread scaling (k={}, train={}, test={}) ===\n",
@@ -162,7 +162,7 @@ fn scaling_std_thread() {
     print_scaling_header();
 
     for &n in THREAD_COUNTS {
-        let r = std_thread::bench(&train, &test, K, n);
+        let r = std_thread::bench(&train, &test, K, DistanceMetric::Hamming, n);
         print_scaling_row(n, &r, &baseline);
         assert!(
             (r.accuracy() - baseline.accuracy()).abs() < 1.0,

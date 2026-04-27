@@ -30,7 +30,7 @@ fn make_dataset() -> (MnistDataset, MnistDataset) {
 #[test]
 fn correct_classification_k3() {
     let (train, test) = make_dataset();
-    let results = sequential::bench(&train, &test, 3);
+    let results = sequential::bench(&train, &test, 3, rust_final::bench::DistanceMetric::Hamming);
     assert_eq!(results.correct, 2);
     assert_eq!(results.accuracy(), 100.0);
 }
@@ -38,7 +38,7 @@ fn correct_classification_k3() {
 #[test]
 fn correct_classification_k1() {
     let (train, test) = make_dataset();
-    let results = sequential::bench(&train, &test, 1);
+    let results = sequential::bench(&train, &test, 1, rust_final::bench::DistanceMetric::Hamming);
     assert_eq!(results.correct, 2);
     assert_eq!(results.accuracy(), 100.0);
 }
@@ -46,13 +46,13 @@ fn correct_classification_k1() {
 #[test]
 fn total_matches_test_set_size() {
     let (train, test) = make_dataset();
-    let results = sequential::bench(&train, &test, 3);
+    let results = sequential::bench(&train, &test, 3, rust_final::bench::DistanceMetric::Hamming);
     assert_eq!(results.total, test.len());
 }
 
 #[test]
 fn throughput_is_positive() {
     let (train, test) = make_dataset();
-    let results = sequential::bench(&train, &test, 3);
+    let results = sequential::bench(&train, &test, 3, rust_final::bench::DistanceMetric::Hamming);
     assert!(results.throughput() > 0.0);
 }

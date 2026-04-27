@@ -1,12 +1,28 @@
 use std::time::Duration;
 use sysinfo::{Pid, System};
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum DistanceMetric {
+    Hamming,
+    Euclidean,
+}
+
+impl std::fmt::Display for DistanceMetric {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DistanceMetric::Hamming   => write!(f, "Hamming"),
+            DistanceMetric::Euclidean => write!(f, "Euclidean"),
+        }
+    }
+}
+
 /// Metrics returned by every benchmark function.
 pub struct Results {
     pub elapsed: Duration,
     pub correct: usize,
     pub total: usize,
     pub memory_delta_kb: i64, // RSS change during the run (KB)
+    pub distance_metric: DistanceMetric,
 }
 
 impl Results {

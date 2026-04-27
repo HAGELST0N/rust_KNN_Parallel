@@ -25,7 +25,7 @@ fn make_dataset() -> (MnistDataset, MnistDataset) {
 #[test]
 fn correct_classification_k3() {
     let (train, test) = make_dataset();
-    let results = std_thread::bench(&train, &test, 3, 4);
+    let results = std_thread::bench(&train, &test, 3, rust_final::bench::DistanceMetric::Hamming, 4);
     assert_eq!(results.correct, 2);
     assert_eq!(results.accuracy(), 100.0);
 }
@@ -33,7 +33,7 @@ fn correct_classification_k3() {
 #[test]
 fn correct_classification_k1() {
     let (train, test) = make_dataset();
-    let results = std_thread::bench(&train, &test, 1, 4);
+    let results = std_thread::bench(&train, &test, 1, rust_final::bench::DistanceMetric::Hamming, 4);
     assert_eq!(results.correct, 2);
     assert_eq!(results.accuracy(), 100.0);
 }
@@ -41,32 +41,32 @@ fn correct_classification_k1() {
 #[test]
 fn total_matches_test_set_size() {
     let (train, test) = make_dataset();
-    let results = std_thread::bench(&train, &test, 3, 4);
+    let results = std_thread::bench(&train, &test, 3, rust_final::bench::DistanceMetric::Hamming, 4);
     assert_eq!(results.total, test.len());
 }
 
 #[test]
 fn throughput_is_positive() {
     let (train, test) = make_dataset();
-    let results = std_thread::bench(&train, &test, 3, 4);
+    let results = std_thread::bench(&train, &test, 3, rust_final::bench::DistanceMetric::Hamming, 4);
     assert!(results.throughput() > 0.0);
 }
 
 #[test]
 fn agrees_with_sequential() {
     let (train, test) = make_dataset();
-    let seq = sequential::bench(&train, &test, 3);
-    let thr = std_thread::bench(&train, &test, 3, 4);
+    let seq = sequential::bench(&train, &test, 3, rust_final::bench::DistanceMetric::Hamming);
+    let thr = std_thread::bench(&train, &test, 3, rust_final::bench::DistanceMetric::Hamming, 4);
     assert_eq!(seq.correct, thr.correct);
 }
 
 #[test]
 fn thread_counts_agree() {
     let (train, test) = make_dataset();
-    let r1 = std_thread::bench(&train, &test, 3, 1);
-    let r2 = std_thread::bench(&train, &test, 3, 2);
-    let r4 = std_thread::bench(&train, &test, 3, 4);
-    let r8 = std_thread::bench(&train, &test, 3, 8);
+    let r1 = std_thread::bench(&train, &test, 3, rust_final::bench::DistanceMetric::Hamming, 1);
+    let r2 = std_thread::bench(&train, &test, 3, rust_final::bench::DistanceMetric::Hamming, 2);
+    let r4 = std_thread::bench(&train, &test, 3, rust_final::bench::DistanceMetric::Hamming, 4);
+    let r8 = std_thread::bench(&train, &test, 3, rust_final::bench::DistanceMetric::Hamming, 8);
     assert_eq!(r1.correct, r2.correct);
     assert_eq!(r1.correct, r4.correct);
     assert_eq!(r1.correct, r8.correct);
